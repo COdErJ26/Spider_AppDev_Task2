@@ -26,18 +26,12 @@ class _FirstPageState extends State<FirstPage> {
   var test = [];
   Future getdata() async {
     String acessKey = '37f963e6b905cf2e36fb6f898cc0d165';
-    // List<User> users = [];
-    var response = await http.get(Uri.parse(
-        "http://api.aviationstack.com/v1/flights?access_key=424fd91c5069193322ec3f03b4c3cfef"));
-    var jsonData = jsonDecode(response.body);
 
-    // for (var u in jsonData["data"]) {
-    //   User user = User(u['id'], u['gmt'], u['airport_id']);
-    //   users.add(user);
-    //   print(user.name);
-    // }
-    // print(users[0].name);
+    var response = await http.get(Uri.parse(
+        "http://api.aviationstack.com/v1/flights?access_key=2dd277952dbc18466d11d39d4f76b648"));
+    var jsonData = jsonDecode(response.body);
     for (var i in jsonData['data']) {
+      // Couldn't access more info through API, so commenting out if condition for displaying some results
       // if (i["departure"]["airport"] == data["current"] &&
       //     i["arrival"]["airport"] == data["destination"]) {
       test.add({
@@ -47,10 +41,22 @@ class _FirstPageState extends State<FirstPage> {
       });
     }
 
-    print(test);
 
-    // return users;
     return test;
+  }
+
+  Set<String> savedWords = Set<String>();
+
+  var iconcolorTF = false;
+  var iconColor = Colors.grey;
+  var FavItem = [];
+  int? selectedIndex;
+  List? selectedIndexList;
+  String? flightNumber;
+  _onSelected(String flightNumber) {
+    setState(() {
+      selectedIndexList?.add(flightNumber);
+    });
   }
 
   @override
@@ -58,24 +64,48 @@ class _FirstPageState extends State<FirstPage> {
     data = ModalRoute.of(context)?.settings.arguments as Map;
     print(data);
     return Scaffold(
-        appBar: AppBar(title: Text('Flight Overview')),
+        appBar: AppBar(title: Text('Flights Available')),
         body: Card(
             child: FutureBuilder(
           future: getdata(),
           builder: (context, AsyncSnapshot snapshot) {
             if (snapshot.data == null) {
               return Container(
-                child: const Text('loading...'),
+                child: const Text('No such Flights Found..'),
               );
             } else {
-              return ListView.builder(
+              return ListView.separated(
+                  separatorBuilder: ((context, index) => const Divider()),
                   scrollDirection: Axis.vertical,
                   shrinkWrap: true,
                   itemCount: snapshot.data.length,
                   itemBuilder: (context, int index) {
                     return ListTile(
-                        title: Text(
-                            "FlightNumber: ${snapshot.data[index]["number"].toString()} FlightDate: ${snapshot.data[index]["flightDate"].toString()} IataCode: ${snapshot.data[index]["iataCode"].toString()} "));
+                      title: Text(
+                          "FlightNumber: ${snapshot.data[index]["number"].toString()}, Flight_Date: ${snapshot.data[index]["flightDate"].toString()} , Iata_Code: ${snapshot.data[index]["iataCode"].toString()} "),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.favorite),
+                        color: selectedIndex != null && selectedIndex == index
+                            ? Colors.redAccent
+                            : Colors.grey,
+                        onPressed: () {
+                          print(selectedIndexList);
+                          setState(() {
+                            _onSelected(
+                                snapshot.data[index]["number"].toString());
+                            if (iconcolorTF == false) {
+                              FavItem.add(
+                                  snapshot.data[index]["number"].toString());
+                              iconColor = Colors.red;
+                              iconcolorTF = true;
+                            } else {
+                              iconColor = Colors.grey;
+                              iconcolorTF = false;
+                            }
+                          });
+                        },
+                      ),
+                    );
                   });
             }
           },
@@ -84,18 +114,14 @@ class _FirstPageState extends State<FirstPage> {
 }
 
 class Home extends StatefulWidget {
-  // final String? name;
-  // final String? rollNo;
 
-  // const Home({Key? key, required this.name, required this.rollNo})
-  //     : super(key: key);
 
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
-  String acessKey = '424fd91c5069193322ec3f03b4c3cfef';
+  String acessKey = '2dd277952dbc18466d11d39d4f76b648';
   var test = [];
   Future getdata() async {
     // List<User> users = [];
@@ -112,9 +138,7 @@ class _HomeState extends State<Home> {
       test.add(i['airport_name']);
       // print(i["airport_name"]);
     }
-    // print(test);
-
-    // return users;
+ 
     return test;
   }
 
@@ -126,14 +150,21 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Flight overview')),
+      appBar: AppBar(
+        title: Text('Flight overview'),
+        backgroundColor: Colors.blue[500],
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
+            SizedBox(
+              height: 20.0,
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton(
+                    style: ElevatedButton.styleFrom(primary: Colors.purple),
                     onPressed: () {
                       setState(() {
                         selectAirport1 = true;
@@ -141,11 +172,15 @@ class _HomeState extends State<Home> {
                     },
                     child: Text("Current location")),
                 ElevatedButton(
+                    style: ElevatedButton.styleFrom(primary: Colors.purple),
                     onPressed: () {
                       selectAirport2 = true;
                     },
                     child: Text("Destination"))
               ],
+            ),
+            SizedBox(
+              height: 20.0,
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -155,14 +190,26 @@ class _HomeState extends State<Home> {
                 Text(selectedAirport2)
               ],
             ),
+            SizedBox(
+              height: 20.0,
+            ),
             ElevatedButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, "/display", arguments: {
-                    "current": selectedAirport1,
-                    "destination": selectedAirport2
-                  });
+                  if (!(selectedAirport1 == "Current Loction" &&
+                      selectedAirport2 == "Destination")) {
+                    Navigator.pushNamed(context, "/display", arguments: {
+                      "current": selectedAirport1,
+                      "destination": selectedAirport2
+                    });
+                  } else {
+                    print("press");
+                  }
                 },
+                style: ElevatedButton.styleFrom(primary: Colors.purple),
                 child: Text("Submit")),
+            SizedBox(
+              height: 20.0,
+            ),
             Card(
               child: FutureBuilder(
                 future: getdata(),
@@ -180,7 +227,6 @@ class _HomeState extends State<Home> {
                         return ListTile(
                           title: Text(snapshot.data[index].toString()),
                           onTap: () {
-                            print("pressed");
                             setState(() {
                               if (selectAirport1) {
                                 selectedAirport1 =
@@ -211,7 +257,3 @@ class _HomeState extends State<Home> {
   }
 }
 
-// class User {
-//   final String name, email, username;
-//   User(this.name, this.email, this.username);
-// }
